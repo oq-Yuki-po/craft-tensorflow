@@ -21,7 +21,7 @@ RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add - \
     && apt-get -y install --no-install-recommends \
     libopencv-dev \
     python3-opencv
-
+ENV PYTHONPATH "${PYTHONPATH}:/workspaces/craft-tensorflow"
 EXPOSE 8888 6006
 # [Optional] Uncomment this line to install global node packages.
 # RUN su vscode -c "source /usr/local/share/nvm/nvm.sh && npm install -g <your-package-here>" 2>&1
