@@ -1,2 +1,6 @@
 # general setting
-input_image_size : [768, 768, 3]
+input_image_size: [768, 768, 3]
+
+# train
+train_data: "src/dataset/synthtext"
+train_batch_size: 8
