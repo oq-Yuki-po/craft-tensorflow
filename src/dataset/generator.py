@@ -68,30 +68,26 @@ def augment_fn(image, region, affinity):
 
     aug_image, aug_heatmaps = seq(image=image, heatmaps=depth_region_and_affinity)
 
-
     aug_heatmaps = aug_heatmaps.resize((384, 384))
 
     aug_heatmaps = aug_heatmaps.get_arr()
 
-    aug_region, aug_affinity = np.dsplit(aug_heatmaps, 2)
-
-    return aug_image, aug_region[:, :, 0], aug_affinity[:, :, 0]
+    return aug_image, aug_heatmaps
 
 
 def data_augment():
     def augment(image, region, affinity):
 
-        image, region, affinity = tf.numpy_function(augment_fn,
-                                                    [image, region, affinity],
-                                                    [tf.uint8, tf.float32, tf.float32])
+        image, heatmaps = tf.numpy_function(augment_fn,
+                                            [image, region, affinity],
+                                            [tf.uint8, tf.float32])
 
         image = tf.dtypes.cast(image, tf.float32) / 255.0
 
-        region.set_shape((None, None))
-        affinity.set_shape((None, None))
         image.set_shape((None, None, 3))
+        heatmaps.set_shape((384, 384, 2))
 
-        return image, region, affinity
+        return image, heatmaps
     return augment
 
 
