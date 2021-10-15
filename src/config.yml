@@ -4,3 +4,6 @@ input_image_size: [768, 768, 3]
 # train
 train_data: "src/dataset/synthtext"
 train_batch_size: 8
+
+# model
+mbv3_alpha: 1.0
