@@ -1,7 +1,12 @@
+import datetime
+import pathlib
+import shutil
+
 import tensorflow as tf
 import typer
 from tensorflow.keras import optimizers
 
+from src.callbacks import cb_checkpoint, cb_tensorboard
 from src.dataset.generator import generate_dataset
 from src.loss import CustomLoss
 from src.model import craft
@@ -28,10 +33,28 @@ def train():
 
     steps_per_epoch = cfg['train_data_length'] // batch_size + 1
 
-    model.fit(train_ds,
-              epochs=cfg['epochs'],
-              steps_per_epoch=steps_per_epoch)
+    result_dir = f"results/{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
+    checkpoint_dir = f"{result_dir}/checkpoints/"
+    log_dir = f"{result_dir}/logs"
 
+    pathlib.Path(result_dir).mkdir(exist_ok=True)
+    pathlib.Path(checkpoint_dir).mkdir(exist_ok=True)
+    pathlib.Path(log_dir).mkdir(exist_ok=True)
+
+    model.fit(train_ds,
+              epochs=cfg['train_epochs'],
+              steps_per_epoch=steps_per_epoch,
+              callbacks=[cb_tensorboard(log_dir), cb_checkpoint(checkpoint_dir)])
+
+    shutil.copy("src/config.yml", f"{result_dir}/config.yaml")
+
+    model.save(f'{result_dir}/saved_model')
+
+    converter = tf.lite.TFLiteConverter.from_keras_model(model)
+
+    tflite_model = converter.convert()
+
+    open(f"{result_dir}/model.tflite", "wb").write(tflite_model)
 
 if __name__ == "__main__":
     typer.run(train)
