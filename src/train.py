@@ -14,17 +14,23 @@ def train():
 
     train_ds = generate_dataset(is_augment=True)
 
+    batch_size = cfg['train_batch_size']
+
     train_ds = train_ds.shuffle(buffer_size=1000).repeat().\
-        batch(cfg['train_batch_size']).\
+        batch(batch_size).\
         prefetch(tf.data.AUTOTUNE)
 
     model = craft()
 
-    optimizer = optimizers.Adam()
+    optimizer = optimizers.Adam(learning_rate=cfg['train_initial_lr'])
 
     model.compile(optimizer=optimizer, loss=CustomLoss())
 
-    model.fit(train_ds, epochs=3, steps_per_epoch=100)
+    steps_per_epoch = cfg['train_data_length'] // batch_size + 1
+
+    model.fit(train_ds,
+              epochs=cfg['epochs'],
+              steps_per_epoch=steps_per_epoch)
 
 
 if __name__ == "__main__":
