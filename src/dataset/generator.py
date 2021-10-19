@@ -54,10 +54,22 @@ def preprocess(image_path, char_box_path, text_path):
 
 def augment_fn(image, region, affinity):
 
+    cfg = load_yaml()
+
+    image_height, image_width, _ = cfg['input_image_size']
+
     seq = iaa.Sequential([
-        iaa.Sharpen((0.0, 1.0)),       # sharpen the image
-        iaa.Affine(rotate=(-45, 45)),  # rotate by -45 to 45 degrees (affects heatmaps)
-    ], random_order=True)
+        iaa.Sometimes(0.5, iaa.Crop(percent=(0, 0.3))),
+        iaa.Sometimes(0.5, iaa.SomeOf(1,
+                                      [iaa.HorizontalFlip(1.0),
+                                       iaa.VerticalFlip(1.0)])),
+        iaa.Sometimes(0.3, iaa.GaussianBlur(1.0)),
+        iaa.Sometimes(0.5, iaa.Rotate(rotate=(0, 180))),
+        iaa.Sometimes(0.5, iaa.AddToHue(value=(-30, 30))),
+        iaa.Sometimes(0.5, iaa.AddToSaturation(value=(-30, 30))),
+        iaa.Sometimes(0.5, iaa.AddToBrightness(add=(-30, 30))),
+        iaa.Resize((image_height, image_width))
+    ])
 
     region = region.astype(np.float32)
     affinity = affinity.astype(np.float32)
@@ -68,7 +80,7 @@ def augment_fn(image, region, affinity):
 
     aug_image, aug_heatmaps = seq(image=image, heatmaps=depth_region_and_affinity)
 
-    aug_heatmaps = aug_heatmaps.resize((384, 384))
+    aug_heatmaps = aug_heatmaps.resize((image_height // 2, image_width // 2))
 
     aug_heatmaps = aug_heatmaps.get_arr()
 
@@ -85,7 +97,7 @@ def data_augment():
         image = tf.dtypes.cast(image, tf.float32) / 255.0
 
         image.set_shape((None, None, 3))
-        heatmaps.set_shape((384, 384, 2))
+        heatmaps.set_shape((None, None, 2))
 
         return image, heatmaps
     return augment

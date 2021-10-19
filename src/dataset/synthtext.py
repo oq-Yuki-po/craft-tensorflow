@@ -3,12 +3,8 @@ from typing import List
 
 import cv2
 import h5py
-import imgaug.augmenters as iaa
 import numpy as np
 import typer
-from imgaug.augmentables.bbs import BoundingBox, BoundingBoxesOnImage
-
-from src.util import load_yaml
 
 
 def split_text(txt: List[np.bytes_]) -> List[List[str]]:
@@ -36,18 +32,6 @@ def split_text(txt: List[np.bytes_]) -> List[List[str]]:
     return splitted_text
 
 
-def generate_imgaug_bbox(char_bbox):
-
-    imgaug_bbox = []
-
-    for bbox in char_bbox:
-        top_left = np.array([np.min(bbox[:, 0]), np.max(bbox[:, 1])]).astype(np.int32)
-        bottom_right = np.array([np.max(bbox[:, 0]), np.min(bbox[:, 1])]).astype(np.int32)
-        imgaug_bbox.append(BoundingBox(x1=top_left[0], y1=top_left[1], x2=bottom_right[0], y2=bottom_right[1]))
-
-    return imgaug_bbox
-
-
 def convert_bbox(imgaug_bboxes):
     all_bbox = []
 
@@ -64,8 +48,6 @@ def convert_bbox(imgaug_bboxes):
 
 
 def main(file_path: str = 'src/dataset/SynthText.h5', saved_path: str = 'src/dataset/synthtext'):
-
-    cfg = load_yaml()
 
     pathlib.Path(saved_path).mkdir(exist_ok=True)
     pathlib.Path(f'{saved_path}/char_bbox').mkdir(exist_ok=True)
@@ -86,22 +68,10 @@ def main(file_path: str = 'src/dataset/SynthText.h5', saved_path: str = 'src/dat
 
             char_bbox = char_bbox.transpose(2, 1, 0)
 
-            imgaug_bbox = generate_imgaug_bbox(char_bbox)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-            bbs = BoundingBoxesOnImage(imgaug_bbox, shape=image.shape)
-
-            image_height, image_width, _ = cfg['input_image_size']
-
-            aug = iaa.Resize((image_height, image_width))
-
-            aug_image, aug_bboxes = aug(image=image, bounding_boxes=bbs)
-
-            aug_char_bbox = convert_bbox(aug_bboxes)
-
-            aug_image = cv2.cvtColor(aug_image, cv2.COLOR_BGR2RGB)
-
-            cv2.imwrite(f"{saved_path}/image/{image_name}", aug_image)
-            np.save(f"{saved_path}/char_bbox/{image_name.replace('.jpg', '')}.npy", aug_char_bbox)
+            cv2.imwrite(f"{saved_path}/image/{image_name}", image)
+            np.save(f"{saved_path}/char_bbox/{image_name.replace('.jpg', '')}.npy", char_bbox)
             with open(f"{saved_path}/text/{image_name.replace('.jpg', '')}.txt", 'w') as f:
                 for x in splitted_text:
                     f.write(str(x) + "\n")
