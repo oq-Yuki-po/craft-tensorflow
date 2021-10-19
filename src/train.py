@@ -7,7 +7,7 @@ import typer
 from tensorflow.keras import optimizers
 
 from src.callbacks import cb_checkpoint, cb_tensorboard
-from src.dataset.generator import generate_dataset
+from src.dataset.generator import CraftDataset
 from src.loss import CustomLoss
 from src.model import craft
 from src.util import load_yaml
@@ -17,7 +17,9 @@ def train():
 
     cfg = load_yaml()
 
-    train_ds = generate_dataset(is_augment=True)
+    craft_dataset = CraftDataset()
+
+    train_ds = craft_dataset.generate()
 
     batch_size = cfg['train_batch_size']
 
