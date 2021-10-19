@@ -9,9 +9,9 @@ def craft():
 
     cfg = load_yaml()
 
-    img_height, img_width, img_chanel = cfg['input_image_size']
+    _, _, img_chanel = cfg['input_image_size']
 
-    image_input = layers.Input(shape=(img_height, img_width, img_chanel))
+    image_input = layers.Input(shape=(None, None, img_chanel))
 
     backbone = MobileNetV3Large(cfg['mbv3_alpha'])
 
@@ -22,16 +22,18 @@ def craft():
     in4 = layers.Conv2D(256, (1, 1), padding='same', kernel_initializer='he_normal', name='in4')(C4)
     in5 = layers.Conv2D(256, (1, 1), padding='same', kernel_initializer='he_normal', name='in5')(C5)
 
-    # 1 / 32 * 8 = 1 / 4
+    # 1 / 32
     P5 = layers.BatchNormalization()(in5)
     P5 = layers.Conv2D(256, (3, 3), padding='same', kernel_initializer='he_normal')(P5)
     P5 = layers.BatchNormalization()(P5)
-    # 1 / 16 * 4 = 1 / 4
+
+    # 1 / 16
     out4 = layers.Add()([in4, layers.UpSampling2D(size=(2, 2))(P5)])
     P4 = layers.BatchNormalization()(out4)
     P4 = layers.Conv2D(128, (3, 3), padding='same', kernel_initializer='he_normal')(P4)
     P4 = layers.BatchNormalization()(P4)
-    # 1 / 8 * 2 = 1 / 4
+
+    # 1 / 8
     out3 = layers.Add()([in3, layers.UpSampling2D(size=(2, 2))(P4)])
     P3 = layers.BatchNormalization()(out3)
     P3 = layers.Conv2D(64, (3, 3), padding='same', kernel_initializer='he_normal')(P3)
@@ -50,10 +52,8 @@ def craft():
     x = layers.Conv2D(16, (1, 1), padding='same', kernel_initializer='he_normal')(x)
     x = layers.Conv2D(2, (1, 1), padding='same', kernel_initializer='he_normal')(x)
 
-    # (b, /4, /4, 256)
-    model = tf.keras.Model(inputs=[image_input], outputs=[x])
+    return tf.keras.Model(inputs=[image_input], outputs=[x])
 
-    return model
 
 if __name__ == '__main__':
     model = craft()

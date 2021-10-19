@@ -21,7 +21,8 @@ def train():
 
     batch_size = cfg['train_batch_size']
 
-    train_ds = train_ds.shuffle(buffer_size=1000).repeat().\
+    train_ds = train_ds.shuffle(buffer_size=1000).\
+        repeat().\
         batch(batch_size).\
         prefetch(tf.data.AUTOTUNE)
 
@@ -30,6 +31,8 @@ def train():
     optimizer = optimizers.Adam(learning_rate=cfg['train_initial_lr'])
 
     model.compile(optimizer=optimizer, loss=CustomLoss())
+
+    model.summary()
 
     steps_per_epoch = cfg['train_data_length'] // batch_size + 1
 
@@ -55,6 +58,7 @@ def train():
     tflite_model = converter.convert()
 
     open(f"{result_dir}/model.tflite", "wb").write(tflite_model)
+
 
 if __name__ == "__main__":
     typer.run(train)
