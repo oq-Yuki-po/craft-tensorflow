@@ -12,13 +12,20 @@ from src.util import load_yaml
 class CraftDataset():
 
     def __init__(self, is_augment: bool = True, is_semi: bool = False) -> None:
+        """初期化
+
+        Args:
+            is_augment (bool, optional): データ拡張を行うか判定. Defaults to True.
+            is_semi (bool, optional): 弱教師あり学習用にデータを生成するか判定. Defaults to False.
+        """
         self.is_augment = is_augment
         self.is_semi = is_semi
 
-        cfg = load_yaml()
+        self.cfg = load_yaml()
 
-        self.image_height, self.image_width, _ = cfg['input_image_size']
+        self.input_image_height, self.input_image_width, _ = self.cfg['input_image_size']
 
+        # データ拡張の定義
         self.seq = iaa.Sequential([
             iaa.Sometimes(0.5, iaa.Crop(percent=(0, 0.3))),
             iaa.Sometimes(0.5, iaa.SomeOf(1,
@@ -29,12 +36,26 @@ class CraftDataset():
             iaa.Sometimes(0.5, iaa.AddToHue(value=(-30, 30))),
             iaa.Sometimes(0.5, iaa.AddToSaturation(value=(-30, 30))),
             iaa.Sometimes(0.5, iaa.AddToBrightness(add=(-30, 30))),
-            iaa.Resize((self.image_height, self.image_width))
+            iaa.Resize((self.input_image_height, self.input_image_width))
         ])
 
-    def generate_scores(self, image, char_bbox, text_path):
+    def generate_scores(self, image: tf.Tensor, char_bbox: tf.Tensor, text_path: tf.Tensor):
+        """[summary]
+
+        Args:
+            image (tf.Tensor): 画像
+            char_bbox (tf.Tensor): 文字単位のBBox
+            text_path (tf.Tensor): 文字のファイルパス
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: Region Score, Affinity Score
+        """
+
+        # numpyに変換
         char_bbox = char_bbox.numpy()
         text_path = text_path.numpy().decode('utf-8')
+
+        # テキストから文字単位に分割
         with open(text_path, "r") as f:
             text = []
             for x in f:
@@ -45,27 +66,44 @@ class CraftDataset():
 
         return region, affinity
 
-    def preprocess_txt(self, text_path):
-        text_path = text_path.numpy().decode('utf-8')
-        with open(text_path, "r") as f:
-            list_row = []
+    def generate_scp(self, image: tf.Tensor):
+        """信頼度マップの生成
 
-            for x in f:
+        Args:
+            image (tf.Tensor): 画像
 
-                list_row.append(eval(x.rstrip("\n")))
-        return list_row
-
-    def generate_scp(self, image):
+        Returns:
+            [np.ndarray]: 信頼度マップ
+        """
 
         scp = np.ones((image.shape[0], image.shape[1]))
 
         return scp
 
-    def preprocess_bbox(self, char_bbox_path):
+    def preprocess_bbox(self, char_bbox_path: tf.Tensor):
+        """文字単位のBBoxのファイル読み込み
+
+        Args:
+            char_bbox_path (tf.Tensor): 文字単位のBBoxのファイルパス
+
+        Returns:
+            [np.ndarray]: 文字単位のBBox
+        """
         char_bbox_path = char_bbox_path.numpy().decode('utf-8')
         return np.load(char_bbox_path)
 
-    def preprocess(self, image_path, char_box_path, text_path):
+    def preprocess(self, image_path: tf.Tensor, char_box_path: tf.Tensor, text_path: tf.Tensor):
+        """Dataset作成の前処理
+
+        Args:
+            image_path (tf.Tensor): 画像パス
+            char_box_path (tf.Tensor): 文字単位のBBoxのファイルパス
+            text_path (tf.Tensor): テキストファイルのファイルパス
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: 画像, Region Score, Affinity Score, 信頼度マップ
+        """
+
         # 画像の読み込み
         image = tf.io.read_file(image_path)
         image = tf.io.decode_jpeg(image, channels=3)
@@ -80,22 +118,31 @@ class CraftDataset():
 
         region, affinity = tf.py_function(self.generate_scores, [image, char_bbox, text_path], [tf.float32, tf.float32])
 
-        return image, region, affinity, scp
+        return image, region, affinity, scp[0]
 
-    def augment_fn(self, image, region, affinity, scp):
+    def augment_fn(self, image: np.ndarray, region: np.ndarray, affinity: np.ndarray, scp: np.ndarray):
+        """データ拡張処理
 
+        Args:
+            image (np.ndarray): 画像
+            region (np.ndarray): Region Score
+            affinity (np.ndarray): Affinity Score
+            scp (np.ndarray): 信頼度マップ
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: 拡張された画像, (拡張されたRegion Score, Affinity Score, 信頼度マップ)
+        """
 
         region = region.astype(np.float32)
         affinity = affinity.astype(np.float32)
 
-        region_and_affinity_and_scp = np.dstack((region, affinity, scp[0]))
+        heatmaps = np.dstack((region, affinity, scp))
 
-        depth_region_and_affinity_scp = HeatmapsOnImage(
-            region_and_affinity_and_scp, shape=image.shape, min_value=0.0, max_value=1.0)
+        depth_heatmaps = HeatmapsOnImage(heatmaps, shape=image.shape, min_value=0.0, max_value=1.0)
 
-        aug_image, aug_heatmaps = self.seq(image=image, heatmaps=depth_region_and_affinity_scp)
+        aug_image, aug_heatmaps = self.seq(image=image, heatmaps=depth_heatmaps)
 
-        aug_heatmaps = aug_heatmaps.resize((self.image_height // 2, self.image_width // 2))
+        aug_heatmaps = aug_heatmaps.resize((self.input_image_height // 2, self.input_image_width // 2))
 
         aug_heatmaps = aug_heatmaps.get_arr()
 
@@ -118,9 +165,7 @@ class CraftDataset():
 
     def generate(self):
 
-        cfg = load_yaml()
-
-        image_dir_path = f"{cfg['train_data']}/image"
+        image_dir_path = f"{self.cfg['train_data']}/image"
 
         all_p_image_paths = list(pathlib.Path(image_dir_path).glob("*.jpg"))
 
