@@ -10,7 +10,7 @@ def test_generate_dataset():
     dataset = craft_dataset.generate()
 
     plt.figure(figsize=(24, 24))
-    for index, (image, heatmaps, scp) in enumerate(dataset.take(3),):
+    for index, (image, heatmaps) in enumerate(dataset.take(3),):
         index = index * 4
         plt.subplot(3, 4, index + 1)
         plt.imshow(image)
@@ -19,7 +19,7 @@ def test_generate_dataset():
         plt.subplot(3, 4, index + 3)
         plt.imshow(heatmaps[:, :, 1], alpha=0.5)
         plt.subplot(3, 4, index + 4)
-        plt.imshow(scp, alpha=0.5)
+        plt.imshow(heatmaps[:, :, 2], alpha=0.5)
         plt.grid(False)
         plt.xticks([])
         plt.yticks([])

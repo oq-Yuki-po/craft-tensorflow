@@ -6,10 +6,16 @@ class CustomLoss(tf.keras.losses.Loss):
         super().__init__()
 
     def call(self, y_true, y_pred):
-        char_pre = tf.reshape(y_pred[:, :, :, 0], [-1], name='char_pre')
-        aff_pre = tf.reshape(y_pred[:, :, :, 1], [-1], name='aff_pre')
-        char_gt = tf.reshape(y_true[:, :, :, 0], [-1], name='char_gt')
-        aff_gt = tf.reshape(y_true[:, :, :, 1], [-1], name='aff_gt')
-        char_loss = tf.norm(tf.subtract(char_pre, char_gt))
-        aff_loss = tf.norm(tf.subtract(aff_pre, aff_gt))
-        return tf.reduce_mean(tf.reduce_sum(tf.add(char_loss, aff_loss)))
+
+        char_pre = y_pred[:, :, :, 0]
+        aff_pre = y_pred[:, :, :, 1]
+        char_gt = y_true[:, :, :, 0]
+        aff_gt = y_true[:, :, :, 1]
+        scp = y_true[:, :, :, 2]
+        char_loss = tf.reduce_mean(tf.square(char_pre - char_gt))
+        aff_loss = tf.reduce_mean(tf.square(aff_pre - aff_gt))
+
+        char_loss = tf.multiply(scp, char_loss)
+        aff_loss = tf.multiply(scp, aff_loss)
+
+        return tf.reduce_mean((tf.add(char_loss, aff_loss)))

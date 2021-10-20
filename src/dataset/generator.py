@@ -19,6 +19,19 @@ class CraftDataset():
 
         self.image_height, self.image_width, _ = cfg['input_image_size']
 
+        self.seq = iaa.Sequential([
+            iaa.Sometimes(0.5, iaa.Crop(percent=(0, 0.3))),
+            iaa.Sometimes(0.5, iaa.SomeOf(1,
+                                          [iaa.HorizontalFlip(1.0),
+                                           iaa.VerticalFlip(1.0)])),
+            iaa.Sometimes(0.3, iaa.GaussianBlur(1.0)),
+            iaa.Sometimes(0.5, iaa.Rotate(rotate=(0, 180))),
+            iaa.Sometimes(0.5, iaa.AddToHue(value=(-30, 30))),
+            iaa.Sometimes(0.5, iaa.AddToSaturation(value=(-30, 30))),
+            iaa.Sometimes(0.5, iaa.AddToBrightness(add=(-30, 30))),
+            iaa.Resize((self.image_height, self.image_width))
+        ])
+
     def generate_scores(self, image, char_bbox, text_path):
         char_bbox = char_bbox.numpy()
         text_path = text_path.numpy().decode('utf-8')
@@ -42,6 +55,12 @@ class CraftDataset():
                 list_row.append(eval(x.rstrip("\n")))
         return list_row
 
+    def generate_scp(self, image):
+
+        scp = np.ones((image.shape[0], image.shape[1]))
+
+        return scp
+
     def preprocess_bbox(self, char_bbox_path):
         char_bbox_path = char_bbox_path.numpy().decode('utf-8')
         return np.load(char_bbox_path)
@@ -49,7 +68,9 @@ class CraftDataset():
     def preprocess(self, image_path, char_box_path, text_path):
         # 画像の読み込み
         image = tf.io.read_file(image_path)
-        image = tf.image.decode_jpeg(image, channels=3)
+        image = tf.io.decode_jpeg(image, channels=3)
+
+        scp = tf.py_function(self.generate_scp, [image], [tf.float32])
 
         if self.is_semi:
             pass
@@ -57,38 +78,22 @@ class CraftDataset():
             # charBBoxファイルの読み込み
             char_bbox = tf.py_function(self.preprocess_bbox, [char_box_path], [tf.float32])
 
-        scp = np.ones((self.image_height // 2, self.image_width // 2))
-
-        scp = scp.astype(np.float32)
-
         region, affinity = tf.py_function(self.generate_scores, [image, char_bbox, text_path], [tf.float32, tf.float32])
 
         return image, region, affinity, scp
 
-    def augment_fn(self, image, region, affinity):
+    def augment_fn(self, image, region, affinity, scp):
 
-        seq = iaa.Sequential([
-            iaa.Sometimes(0.5, iaa.Crop(percent=(0, 0.3))),
-            iaa.Sometimes(0.5, iaa.SomeOf(1,
-                                          [iaa.HorizontalFlip(1.0),
-                                           iaa.VerticalFlip(1.0)])),
-            iaa.Sometimes(0.3, iaa.GaussianBlur(1.0)),
-            iaa.Sometimes(0.5, iaa.Rotate(rotate=(0, 180))),
-            iaa.Sometimes(0.5, iaa.AddToHue(value=(-30, 30))),
-            iaa.Sometimes(0.5, iaa.AddToSaturation(value=(-30, 30))),
-            iaa.Sometimes(0.5, iaa.AddToBrightness(add=(-30, 30))),
-            iaa.Resize((self.image_height, self.image_width))
-        ])
 
         region = region.astype(np.float32)
         affinity = affinity.astype(np.float32)
 
-        region_and_affinity = np.dstack((region, affinity))
+        region_and_affinity_and_scp = np.dstack((region, affinity, scp[0]))
 
-        depth_region_and_affinity = HeatmapsOnImage(
-            region_and_affinity, shape=image.shape, min_value=0.0, max_value=1.0)
+        depth_region_and_affinity_scp = HeatmapsOnImage(
+            region_and_affinity_and_scp, shape=image.shape, min_value=0.0, max_value=1.0)
 
-        aug_image, aug_heatmaps = seq(image=image, heatmaps=depth_region_and_affinity)
+        aug_image, aug_heatmaps = self.seq(image=image, heatmaps=depth_region_and_affinity_scp)
 
         aug_heatmaps = aug_heatmaps.resize((self.image_height // 2, self.image_width // 2))
 
@@ -100,15 +105,15 @@ class CraftDataset():
         def augment(image, region, affinity, scp):
 
             image, heatmaps = tf.numpy_function(self.augment_fn,
-                                                [image, region, affinity],
+                                                [image, region, affinity, scp],
                                                 [tf.uint8, tf.float32])
 
             image = tf.dtypes.cast(image, tf.float32) / 255.0
 
             image.set_shape((None, None, 3))
-            heatmaps.set_shape((None, None, 2))
+            heatmaps.set_shape((None, None, 3))
 
-            return image, heatmaps,scp
+            return image, heatmaps
         return augment
 
     def generate(self):
