@@ -1,4 +1,3 @@
-
 import tensorflow as tf
 
 
@@ -30,3 +29,18 @@ def cb_checkpoint(checkpoint_dir):
                                               verbose=1,
                                               save_weights_only=True,
                                               period=1)
+
+
+class CustomLearningRateScheduler(tf.keras.callbacks.Callback):
+
+    def __init__(self, all_step=0):
+        super(CustomLearningRateScheduler, self).__init__()
+        self.all_step = all_step
+
+    def on_train_batch_begin(self, batch, logs=None):
+        current_lr = self.model.optimizer.learning_rate.numpy()
+        self.all_step += 1
+
+        if self.all_step % 3 == 0:
+            self.model.optimizer.learning_rate.assign(current_lr * 0.8)
+            print(f"current lr:{current_lr:.08f} new lr:{current_lr * 0.8:.08f}")

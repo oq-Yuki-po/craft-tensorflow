@@ -6,7 +6,7 @@ import tensorflow as tf
 import typer
 from tensorflow.keras import optimizers
 
-from src.callbacks import cb_checkpoint, cb_tensorboard
+from src.callbacks import CustomLearningRateScheduler, cb_checkpoint, cb_tensorboard
 from src.dataset.generator import CraftDataset
 from src.loss import CustomLoss
 from src.model import craft
@@ -49,7 +49,7 @@ def train():
     model.fit(train_ds,
               epochs=cfg['train_epochs'],
               steps_per_epoch=steps_per_epoch,
-              callbacks=[cb_tensorboard(log_dir), cb_checkpoint(checkpoint_dir)])
+              callbacks=[cb_tensorboard(log_dir), cb_checkpoint(checkpoint_dir), CustomLearningRateScheduler()])
 
     shutil.copy("src/config.yml", f"{result_dir}/config.yaml")
 
