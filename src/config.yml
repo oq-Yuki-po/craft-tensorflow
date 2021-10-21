@@ -2,10 +2,14 @@
 input_image_size: [768, 768, 3]
 
 # train
+gaussian_sigma: 10
+gaussian_spread: 3
 train_data: "src/dataset/synthtext"
+train_shuffle_buffer_size: 5000
+train_shuffle_seed: 123
 train_batch_size: 4
 train_data_length: 6
-train_epochs: 2
+train_epochs: 20
 train_initial_lr: 0.0001 # 1e-4
 
 # model

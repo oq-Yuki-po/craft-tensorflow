@@ -6,7 +6,7 @@ import tensorflow as tf
 import typer
 from tensorflow.keras import optimizers
 
-from src.callbacks import CustomLearningRateScheduler, cb_checkpoint, cb_tensorboard
+from src.callbacks import CheckLearningProcess, CustomLearningRateScheduler, cb_checkpoint, cb_tensorboard
 from src.dataset.generator import CraftDataset
 from src.loss import CustomLoss
 from src.model import craft
@@ -23,7 +23,7 @@ def train():
 
     batch_size = cfg['train_batch_size']
 
-    train_ds = train_ds.shuffle(buffer_size=1000).\
+    train_ds = train_ds.shuffle(buffer_size=cfg['train_shuffle_buffer_size']).\
         repeat().\
         batch(batch_size).\
         prefetch(tf.data.AUTOTUNE)
@@ -32,7 +32,7 @@ def train():
 
     optimizer = optimizers.Adam(learning_rate=cfg['train_initial_lr'])
 
-    model.compile(optimizer=optimizer, loss=CustomLoss())
+    model.compile(optimizer=optimizer, loss=CustomLoss(), run_eagerly=True)
 
     model.summary()
 
@@ -49,7 +49,10 @@ def train():
     model.fit(train_ds,
               epochs=cfg['train_epochs'],
               steps_per_epoch=steps_per_epoch,
-              callbacks=[cb_tensorboard(log_dir), cb_checkpoint(checkpoint_dir), CustomLearningRateScheduler()])
+              callbacks=[cb_tensorboard(log_dir),
+                         cb_checkpoint(checkpoint_dir),
+                         CustomLearningRateScheduler(),
+                         CheckLearningProcess()])
 
     shutil.copy("src/config.yml", f"{result_dir}/config.yaml")
 

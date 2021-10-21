@@ -1,4 +1,5 @@
 import pathlib
+import random
 
 import imgaug.augmenters as iaa
 import numpy as np
@@ -7,6 +8,8 @@ from imgaug.augmentables.heatmaps import HeatmapsOnImage
 
 from src.dataset.score_genetator import generate_affinity_score, generate_region_score
 from src.util import load_yaml
+
+random.seed(66)
 
 
 class CraftDataset():
@@ -168,6 +171,8 @@ class CraftDataset():
         image_dir_path = f"{self.cfg['train_data']}/image"
 
         all_p_image_paths = list(pathlib.Path(image_dir_path).glob("*.jpg"))
+
+        random.shuffle(all_p_image_paths)
 
         all_image_paths = [str(i) for i in all_p_image_paths]
         all_char_bbox_paths = [str(i).replace("image", "char_bbox").replace(".jpg", ".npy") for i in all_p_image_paths]

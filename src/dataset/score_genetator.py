@@ -3,6 +3,10 @@ from typing import List, Tuple
 import cv2
 import numpy as np
 
+from src.util import load_yaml
+
+cfg = load_yaml()
+
 
 def four_point_transform(image, pts):
     max_x, max_y = np.max(pts[:, 0]).astype(np.int32), np.max(pts[:, 1]).astype(np.int32)
@@ -20,16 +24,16 @@ def four_point_transform(image, pts):
     return warped
 
 
-def generate_gaussian(sigma: int = 10, spread: int = 4) -> np.ndarray:
+def generate_gaussian() -> np.ndarray:
     """正規分布の生成
-
-    Args:
-        sigma (int, optional): 正規分布のパラメータ. Defaults to 10.
-        spread (int, optional): 正規分布のパラメータ. Defaults to 4.
 
     Returns:
         np.ndarray: 正規分布
     """
+
+    spread = cfg['gaussian_spread']
+    sigma = cfg['gaussian_sigma']
+
     extent = int(spread * sigma)
     center = spread * sigma / 2
     gaussian_heatmap = np.zeros([extent, extent], dtype=np.float32)
