@@ -1,6 +1,9 @@
 import datetime
+import os
 import pathlib
 import shutil
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import tensorflow as tf
 import typer
@@ -17,34 +20,37 @@ def train():
 
     cfg = load_yaml()
 
-    craft_dataset = CraftDataset()
+    strategy = tf.distribute.MirroredStrategy()
+    with strategy.scope():
 
-    train_ds = craft_dataset.generate()
+        craft_dataset = CraftDataset()
 
-    batch_size = cfg['train_batch_size']
+        train_ds = craft_dataset.generate()
 
-    train_ds = train_ds.shuffle(buffer_size=cfg['train_shuffle_buffer_size']).\
-        repeat().\
-        batch(batch_size).\
-        prefetch(tf.data.AUTOTUNE)
+        batch_size = cfg['train_batch_size']
 
-    model = craft()
+        train_ds = train_ds.shuffle(buffer_size=cfg['train_shuffle_buffer_size'], seed=cfg['train_shuffle_seed']).\
+            repeat().\
+            batch(batch_size).\
+            prefetch(tf.data.AUTOTUNE)
 
-    optimizer = optimizers.Adam(learning_rate=cfg['train_initial_lr'])
+        model = craft()
 
-    model.compile(optimizer=optimizer, loss=CustomLoss(), run_eagerly=True)
+        optimizer = optimizers.Adam(learning_rate=cfg['train_initial_lr'])
 
-    model.summary()
+        model.compile(optimizer=optimizer, loss=CustomLoss(), run_eagerly=True)
 
-    steps_per_epoch = cfg['train_data_length'] // batch_size + 1
+        model.summary()
 
-    result_dir = f"results/{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
-    checkpoint_dir = f"{result_dir}/checkpoints/"
-    log_dir = f"{result_dir}/logs"
+        steps_per_epoch = cfg['train_data_length'] // batch_size + 1
 
-    pathlib.Path(result_dir).mkdir(exist_ok=True)
-    pathlib.Path(checkpoint_dir).mkdir(exist_ok=True)
-    pathlib.Path(log_dir).mkdir(exist_ok=True)
+        result_dir = f"results/{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
+        checkpoint_dir = f"{result_dir}/checkpoints/"
+        log_dir = f"{result_dir}/logs"
+
+        pathlib.Path(result_dir).mkdir(exist_ok=True)
+        pathlib.Path(checkpoint_dir).mkdir(exist_ok=True)
+        pathlib.Path(log_dir).mkdir(exist_ok=True)
 
     model.fit(train_ds,
               epochs=cfg['train_epochs'],
