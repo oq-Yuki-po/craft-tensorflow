@@ -52,14 +52,15 @@ class CustomLearningRateScheduler(tf.keras.callbacks.Callback):
 
 class CheckLearningProcess(tf.keras.callbacks.Callback):
 
-    def __init__(self, all_step=0):
+    def __init__(self, image_dir, all_step=0):
         super(CheckLearningProcess, self).__init__()
         self.all_step = all_step
+        self.image_dir = image_dir
 
     def on_train_batch_begin(self, batch, logs=None):
 
         self.all_step += 1
-        if self.all_step % 5000 == 0:
+        if self.all_step % 1 == 0:
             image = loadImage('src/images/sample_01.jpeg')
             org_image_height, org_image_width, _ = image.shape
             image_resized, _, _ = resize_aspect_ratio(image, 1280, cv2.INTER_LINEAR)
@@ -78,8 +79,8 @@ class CheckLearningProcess(tf.keras.callbacks.Callback):
 
             region_heatmap_img = cv2.applyColorMap(region, cv2.COLORMAP_JET)
             overlay_img = cv2.addWeighted(region_heatmap_img, 0.5, image, 0.5, 0)
-            cv2.imwrite(f'src/images/region_heatmap_step_{self.all_step}.jpeg', overlay_img)
+            cv2.imwrite(f'{self.image_dir}/region_heatmap_step_{self.all_step}.jpeg', overlay_img)
 
             affinity_heatmap_img = cv2.applyColorMap(region, cv2.COLORMAP_JET)
             overlay_img = cv2.addWeighted(affinity_heatmap_img, 0.5, image, 0.5, 0)
-            cv2.imwrite(f'src/images/affinity_heatmap_step_{self.all_step}.jpeg', overlay_img)
+            cv2.imwrite(f'{self.image_dir}/affinity_heatmap_step_{self.all_step}.jpeg', overlay_img)
