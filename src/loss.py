@@ -12,10 +12,10 @@ class CustomLoss(tf.keras.losses.Loss):
         char_gt = y_true[:, :, :, 0]
         aff_gt = y_true[:, :, :, 1]
         scp = y_true[:, :, :, 2]
-        char_loss = tf.reduce_mean(tf.square(char_pre - char_gt))
-        aff_loss = tf.reduce_mean(tf.square(aff_pre - aff_gt))
+        char_sub = char_pre - char_gt
+        aff_sub = aff_pre - aff_gt
 
-        char_loss = tf.multiply(scp, char_loss)
-        aff_loss = tf.multiply(scp, aff_loss)
+        char_loss = tf.square(char_sub)
+        aff_loss = tf.square(aff_sub)
 
-        return tf.reduce_mean((tf.add(char_loss, aff_loss)))
+        return tf.divide(tf.reduce_sum(tf.add(char_loss, aff_loss)), 4)

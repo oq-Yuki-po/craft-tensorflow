@@ -1,4 +1,5 @@
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
@@ -53,6 +54,7 @@ class CustomModelCheckpoint(tf.keras.callbacks.Callback):
             self.model.save_weights(filepath=file_path)
             print(f"\nsaved ckpt : {file_path}")
 
+
 class CustomLearningRateScheduler(tf.keras.callbacks.Callback):
 
     def __init__(self, all_step=0):
@@ -78,7 +80,7 @@ class CheckLearningProcess(tf.keras.callbacks.Callback):
     def on_train_batch_begin(self, batch, logs=None):
 
         self.all_step += 1
-        if self.all_step % 10 == 0:
+        if self.all_step % 1 == 0:
             image = loadImage('src/images/sample_01.jpeg')
             org_image_height, org_image_width, _ = image.shape
             image_resized, _, _ = resize_aspect_ratio(image, 1280, cv2.INTER_LINEAR)
@@ -92,8 +94,14 @@ class CheckLearningProcess(tf.keras.callbacks.Callback):
             region = cv2.resize(region, (org_image_width, org_image_height))
             affinity = cv2.resize(affinity, (org_image_width, org_image_height))
 
-            region = region.astype(np.uint8)
-            affinity = affinity.astype(np.uint8)
+            region = (region * 255).astype(np.uint8)
+            affinity = (affinity * 255).astype(np.uint8)
+
+            plt.imshow(region)
+            plt.savefig(f"{self.image_dir}/region/plt_step_{self.all_step}.jpeg")
+
+            plt.imshow(affinity)
+            plt.savefig(f"{self.image_dir}/affinity/plt_step_{self.all_step}.jpeg")
 
             region_heatmap_img = cv2.applyColorMap(region, cv2.COLORMAP_JET)
             overlay_img = cv2.addWeighted(region_heatmap_img, 0.5, image, 0.5, 0)
