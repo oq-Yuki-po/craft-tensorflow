@@ -1,15 +1,13 @@
 import datetime
-import os
 import pathlib
 import shutil
-
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import tensorflow as tf
 import typer
 from tensorflow.keras import optimizers
 
-from src.callbacks import CheckLearningProcess, CustomLearningRateScheduler, cb_checkpoint, cb_tensorboard
+from src.callbacks import (CheckLearningProcess, CustomLearningRateScheduler, CustomModelCheckpoint,
+                           cb_epoch_checkpoint, cb_tensorboard)
 from src.dataset.generator import CraftDataset
 from src.loss import CustomLoss
 from src.model import craft
@@ -29,6 +27,8 @@ def train():
     pathlib.Path(checkpoint_dir).mkdir(exist_ok=True)
     pathlib.Path(log_dir).mkdir(exist_ok=True)
     pathlib.Path(image_dir).mkdir(exist_ok=True)
+    pathlib.Path(f"{image_dir}/region").mkdir(exist_ok=True)
+    pathlib.Path(f"{image_dir}/affinity").mkdir(exist_ok=True)
 
     craft_dataset = CraftDataset()
 
@@ -36,7 +36,7 @@ def train():
 
     batch_size = cfg['train_batch_size']
 
-    train_ds = train_ds.shuffle(buffer_size=cfg['train_shuffle_buffer_size'], seed=cfg['train_shuffle_seed']).\
+    train_ds = train_ds.\
         repeat().\
         batch(batch_size).\
         prefetch(tf.data.AUTOTUNE)
@@ -44,13 +44,13 @@ def train():
     strategy = tf.distribute.MirroredStrategy()
     print(f'Number of devices: {strategy.num_replicas_in_sync}')
 
-    with strategy.scope():
+    # with strategy.scope():
 
-        model = craft()
+    model = craft()
 
-        optimizer = optimizers.Adam(learning_rate=cfg['train_initial_lr'])
+    optimizer = optimizers.Adam(learning_rate=cfg['train_initial_lr'])
 
-        model.compile(optimizer=optimizer, loss=CustomLoss())
+    model.compile(optimizer=optimizer, loss=CustomLoss())
 
     model.summary()
 
@@ -62,9 +62,10 @@ def train():
               epochs=cfg['train_epochs'],
               steps_per_epoch=steps_per_epoch,
               callbacks=[cb_tensorboard(log_dir),
-                         cb_checkpoint(checkpoint_dir),
+                         cb_epoch_checkpoint(checkpoint_dir),
                          CustomLearningRateScheduler(),
-                         CheckLearningProcess(image_dir)])
+                         CheckLearningProcess(image_dir),
+                         CustomModelCheckpoint(model, checkpoint_dir, all_step=0, save_steps=cfg['train_save_steps'])])
 
     model.save(f'{result_dir}/saved_model')
 

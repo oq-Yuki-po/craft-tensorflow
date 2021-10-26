@@ -15,10 +15,10 @@ def cb_tensorboard(log_dir):
         [tf.keras.callbacks]: TensorBoardのCallback
     """
 
-    return tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1, update_freq=3)
+    return tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1, update_freq=3, profile_batch='1,5')
 
 
-def cb_checkpoint(checkpoint_dir):
+def cb_epoch_checkpoint(checkpoint_dir):
     """Check pointのCallback
 
     Args:
@@ -34,6 +34,24 @@ def cb_checkpoint(checkpoint_dir):
                                               save_weights_only=True,
                                               period=1)
 
+
+class CustomModelCheckpoint(tf.keras.callbacks.Callback):
+
+    def __init__(self, model, checkpoint_dir, all_step=0, save_steps=1000):
+        super(CustomModelCheckpoint, self).__init__()
+        self.model = model
+        self.checkpoint_dir = checkpoint_dir
+        self.all_step = all_step
+        self.save_steps = save_steps
+
+    def on_train_batch_begin(self, batch, logs=None):
+        self.all_step += 1
+
+    def on_batch_end(self, batch, logs=None):
+        if self.all_step % self.save_steps == 0:
+            file_path = "{}/step_{:06}_loss_{:04f}.ckpt".format(self.checkpoint_dir, self.all_step, logs["loss"])
+            self.model.save_weights(filepath=file_path)
+            print(f"\nsaved ckpt : {file_path}")
 
 class CustomLearningRateScheduler(tf.keras.callbacks.Callback):
 
@@ -60,7 +78,7 @@ class CheckLearningProcess(tf.keras.callbacks.Callback):
     def on_train_batch_begin(self, batch, logs=None):
 
         self.all_step += 1
-        if self.all_step % 1 == 0:
+        if self.all_step % 10 == 0:
             image = loadImage('src/images/sample_01.jpeg')
             org_image_height, org_image_width, _ = image.shape
             image_resized, _, _ = resize_aspect_ratio(image, 1280, cv2.INTER_LINEAR)
@@ -79,8 +97,8 @@ class CheckLearningProcess(tf.keras.callbacks.Callback):
 
             region_heatmap_img = cv2.applyColorMap(region, cv2.COLORMAP_JET)
             overlay_img = cv2.addWeighted(region_heatmap_img, 0.5, image, 0.5, 0)
-            cv2.imwrite(f'{self.image_dir}/region_heatmap_step_{self.all_step}.jpeg', overlay_img)
+            cv2.imwrite(f'{self.image_dir}/region/step_{self.all_step}.jpeg', overlay_img)
 
-            affinity_heatmap_img = cv2.applyColorMap(region, cv2.COLORMAP_JET)
+            affinity_heatmap_img = cv2.applyColorMap(affinity, cv2.COLORMAP_JET)
             overlay_img = cv2.addWeighted(affinity_heatmap_img, 0.5, image, 0.5, 0)
-            cv2.imwrite(f'{self.image_dir}/affinity_heatmap_step_{self.all_step}.jpeg', overlay_img)
+            cv2.imwrite(f'{self.image_dir}/affinity/step_{self.all_step}.jpeg', overlay_img)

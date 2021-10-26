@@ -181,7 +181,8 @@ class CraftDataset():
         assert len(all_image_paths) == len(all_char_bbox_paths)
         assert len(all_image_paths) == len(all_text_paths)
 
-        path_ds = tf.data.Dataset.from_tensor_slices((all_image_paths, all_char_bbox_paths, all_text_paths))
+        path_ds = tf.data.Dataset.from_tensor_slices((all_image_paths, all_char_bbox_paths, all_text_paths)).\
+            shuffle(buffer_size=self.cfg['train_shuffle_buffer_size'], seed=self.cfg['train_shuffle_seed'])
 
         dataset = path_ds.map(self.preprocess, num_parallel_calls=tf.data.AUTOTUNE)
         if self.is_augment:
