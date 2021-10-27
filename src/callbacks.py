@@ -78,6 +78,7 @@ class CustomLearningRateScheduler(tf.keras.callbacks.Callback):
         if self.all_step % self.change_steps == 0:
             self.model.optimizer.learning_rate.assign(current_lr * 0.8)
             print(f"current lr:{current_lr:.08f} new lr:{current_lr * 0.8:.08f}")
+        tf.summary.scalar('learning rate', data=current_lr, step=self.all_step)
 
 
 class CheckLearningProcess(tf.keras.callbacks.Callback):
