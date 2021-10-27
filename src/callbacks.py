@@ -102,11 +102,25 @@ class CheckLearningProcess(tf.keras.callbacks.Callback):
             results = self.model.predict(inputs)
             region = results[0, :, :, 0]
             affinity = results[0, :, :, 1]
-            region = cv2.resize(region, (org_image_width, org_image_height))
-            affinity = cv2.resize(affinity, (org_image_width, org_image_height))
-
             region = (region * 255).astype(np.uint8)
             affinity = (affinity * 255).astype(np.uint8)
+
+            region_heatmap_img = cv2.applyColorMap(region, cv2.COLORMAP_JET)
+            tf.summary.image(f"region/step_{self.all_step}",
+                             np.expand_dims(region_heatmap_img, axis=0),
+                             step=self.all_step,
+                             max_outputs=100,
+                             description=None)
+
+            affinity_heatmap_img = cv2.applyColorMap(affinity, cv2.COLORMAP_JET)
+            tf.summary.image(f"affinity/step_{self.all_step}",
+                             np.expand_dims(affinity_heatmap_img, axis=0),
+                             step=self.all_step,
+                             max_outputs=100,
+                             description=None)
+
+            region = cv2.resize(region, (org_image_width, org_image_height))
+            affinity = cv2.resize(affinity, (org_image_width, org_image_height))
 
             plt.imshow(region)
             plt.savefig(f"{self.image_dir}/region/plt_step_{self.all_step}.jpeg")
