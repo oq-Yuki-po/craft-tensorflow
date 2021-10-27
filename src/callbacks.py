@@ -57,15 +57,16 @@ class CustomModelCheckpoint(tf.keras.callbacks.Callback):
 
 class CustomLearningRateScheduler(tf.keras.callbacks.Callback):
 
-    def __init__(self, all_step=0):
+    def __init__(self, all_step=0, change_steps=1000):
         super(CustomLearningRateScheduler, self).__init__()
         self.all_step = all_step
+        self.change_steps = change_steps
 
     def on_train_batch_begin(self, batch, logs=None):
         current_lr = self.model.optimizer.learning_rate.numpy()
         self.all_step += 1
 
-        if self.all_step % 10000 == 0:
+        if self.all_step % self.change_steps == 0:
             self.model.optimizer.learning_rate.assign(current_lr * 0.8)
             print(f"current lr:{current_lr:.08f} new lr:{current_lr * 0.8:.08f}")
 

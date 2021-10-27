@@ -12,6 +12,7 @@ train_data_length: 1000
 train_epochs: 20
 train_initial_lr: 0.0001 # 1e-4
 train_save_steps: 1000
+train_lr_change_step: 100
 
 # model
 mbv3_alpha: 1.0

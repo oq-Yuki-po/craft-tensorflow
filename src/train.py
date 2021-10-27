@@ -50,7 +50,9 @@ def train():
 
     optimizer = optimizers.Adam(learning_rate=cfg['train_initial_lr'])
 
-    model.compile(optimizer=optimizer, loss=CustomLoss())
+    model.compile(optimizer=optimizer, loss=CustomLoss(), run_eagerly=True)
+    # model.compile(optimizer=optimizer, loss=CustomLoss())
+
 
     model.summary()
 
@@ -63,7 +65,7 @@ def train():
               steps_per_epoch=steps_per_epoch,
               callbacks=[cb_tensorboard(log_dir),
                          cb_epoch_checkpoint(checkpoint_dir),
-                         CustomLearningRateScheduler(),
+                         CustomLearningRateScheduler(change_steps=cfg['train_lr_change_step']),
                          CheckLearningProcess(image_dir),
                          CustomModelCheckpoint(model, checkpoint_dir, all_step=0, save_steps=cfg['train_save_steps'])])
 
