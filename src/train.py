@@ -50,7 +50,7 @@ def train():
 
     optimizer = optimizers.Adam(learning_rate=cfg['train_initial_lr'])
 
-    model.compile(optimizer=optimizer, loss=CustomLoss(), run_eagerly=True)
+    model.compile(optimizer=optimizer, loss=CustomLoss(batch_size), run_eagerly=True)
     # model.compile(optimizer=optimizer, loss=CustomLoss())
 
 
