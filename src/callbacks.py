@@ -36,6 +36,15 @@ def cb_epoch_checkpoint(checkpoint_dir):
                                               period=1)
 
 
+def cb_early_stopping():
+    early_stopping = tf.keras.callbacks.EarlyStopping(
+        monitor='loss',
+        min_delta=1e-2,
+        patience=2,
+    )
+    return early_stopping
+
+
 class CustomModelCheckpoint(tf.keras.callbacks.Callback):
 
     def __init__(self, model, checkpoint_dir, all_step=0, save_steps=1000):

@@ -6,7 +6,7 @@ import tensorflow as tf
 import typer
 from tensorflow.keras import optimizers
 
-from src.callbacks import (CheckLearningProcess, CustomLearningRateScheduler, CustomModelCheckpoint,
+from src.callbacks import (CheckLearningProcess, CustomLearningRateScheduler, CustomModelCheckpoint, cb_early_stopping,
                            cb_epoch_checkpoint, cb_tensorboard)
 from src.dataset.generator import CraftDataset
 from src.loss import CustomLoss
@@ -53,7 +53,6 @@ def train():
     model.compile(optimizer=optimizer, loss=CustomLoss(batch_size), run_eagerly=True)
     # model.compile(optimizer=optimizer, loss=CustomLoss())
 
-
     model.summary()
 
     steps_per_epoch = cfg['train_data_length'] // batch_size + 1
@@ -65,6 +64,7 @@ def train():
               steps_per_epoch=steps_per_epoch,
               callbacks=[cb_tensorboard(log_dir),
                          cb_epoch_checkpoint(checkpoint_dir),
+                         cb_early_stopping(),
                          CustomLearningRateScheduler(change_steps=cfg['train_lr_change_step']),
                          CheckLearningProcess(image_dir),
                          CustomModelCheckpoint(model, checkpoint_dir, all_step=0, save_steps=cfg['train_save_steps'])])
