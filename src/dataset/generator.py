@@ -34,8 +34,8 @@ class CraftDataset():
             iaa.Sometimes(0.5, iaa.SomeOf(1,
                                           [iaa.HorizontalFlip(1.0),
                                            iaa.VerticalFlip(1.0)])),
-            iaa.Sometimes(0.3, iaa.GaussianBlur(1.0)),
-            iaa.Sometimes(0.5, iaa.Rotate(rotate=(0, 180))),
+            iaa.Sometimes(0.5, iaa.GaussianBlur(sigma=(0.0, 3.0))),
+            iaa.Sometimes(0.5, iaa.Rotate(rotate=(-60, 60))),
             iaa.Sometimes(0.5, iaa.AddToHue(value=(-30, 30))),
             iaa.Sometimes(0.5, iaa.AddToSaturation(value=(-30, 30))),
             iaa.Sometimes(0.5, iaa.AddToBrightness(add=(-30, 30))),
@@ -69,20 +69,6 @@ class CraftDataset():
 
         return region, affinity
 
-    def generate_scp(self, image: tf.Tensor):
-        """信頼度マップの生成
-
-        Args:
-            image (tf.Tensor): 画像
-
-        Returns:
-            [np.ndarray]: 信頼度マップ
-        """
-
-        scp = np.ones((image.shape[0], image.shape[1]))
-
-        return scp
-
     def preprocess_bbox(self, char_bbox_path: tf.Tensor):
         """文字単位のBBoxのファイル読み込み
 
@@ -110,8 +96,9 @@ class CraftDataset():
         # 画像の読み込み
         image = tf.io.read_file(image_path)
         image = tf.io.decode_jpeg(image, channels=3)
-
-        scp = tf.py_function(self.generate_scp, [image], [tf.float32])
+        image_height = tf.shape(image)[0]
+        image_width = tf.shape(image)[1]
+        scp = tf.ones([image_height, image_width])
 
         if self.is_semi:
             pass
@@ -121,7 +108,7 @@ class CraftDataset():
 
         region, affinity = tf.py_function(self.generate_scores, [image, char_bbox, text_path], [tf.float32, tf.float32])
 
-        return image, region, affinity, scp[0]
+        return image, region, affinity, scp
 
     def augment_fn(self, image: np.ndarray, region: np.ndarray, affinity: np.ndarray, scp: np.ndarray):
         """データ拡張処理
