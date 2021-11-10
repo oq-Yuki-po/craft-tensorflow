@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 from src.dataset.score_genetator import generate_affinity_score, generate_gaussian, generate_region_score
-from tests.conftest import OUTPUT_PATH
+from tests import OUTPUT_PATH
 
 
 def test_generate_region_score(load_synthtext):

@@ -4,7 +4,7 @@ import shutil
 import h5py
 import pytest
 
-OUTPUT_PATH = 'tests/test_output'
+from tests import OUTPUT_PATH
 
 
 @pytest.fixture(scope='session', autouse=True)
