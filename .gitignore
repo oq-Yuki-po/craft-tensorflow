@@ -129,5 +129,6 @@ dmypy.json
 .pyre/
 
 src/dataset/synthtext
+src/dataset/icdar
 .DS_Store
 results
