@@ -30,32 +30,45 @@ def train():
     pathlib.Path(f"{image_dir}/region").mkdir(exist_ok=True)
     pathlib.Path(f"{image_dir}/affinity").mkdir(exist_ok=True)
 
-    craft_dataset = CraftDataset()
+    strategy = tf.distribute.MirroredStrategy()
+    print(f'Number of devices: {strategy.num_replicas_in_sync}')
 
-    train_ds = craft_dataset.generate()
+    model = craft()
+
+    if cfg['is_model_weight_load']:
+
+        latest = tf.train.latest_checkpoint('results/checkpoints')
+        model.load_weights(latest)
+        print(f'weight loaded : {latest}')
+
+    optimizer = optimizers.Adam(learning_rate=cfg['train_initial_lr'])
 
     batch_size = cfg['train_batch_size']
+
+    if cfg['is_weak_supervised']:
+        craft_dataset_synth = CraftDataset()
+        train_ds_synth = craft_dataset_synth.generate()
+        craft_dataset_icdar = CraftDataset(model=model)
+        train_ds_icdar = craft_dataset_icdar.generate(is_weak_supervised=cfg['is_weak_supervised'])
+        train_ds = train_ds_synth.concatenate(train_ds_icdar)
+        steps_per_epoch = (cfg['train_synth_data_length'] + cfg['train_icdar_data_length']) // batch_size + 1
+
+    else:
+        craft_dataset = CraftDataset()
+        train_ds = craft_dataset.generate()
+        steps_per_epoch = cfg['train_synth_data_length'] // batch_size + 1
+
+
 
     train_ds = train_ds.\
         repeat().\
         batch(batch_size).\
         prefetch(tf.data.AUTOTUNE)
 
-    strategy = tf.distribute.MirroredStrategy()
-    print(f'Number of devices: {strategy.num_replicas_in_sync}')
-
-    # with strategy.scope():
-
-    model = craft()
-
-    optimizer = optimizers.Adam(learning_rate=cfg['train_initial_lr'])
-
     model.compile(optimizer=optimizer, loss=CustomLoss(batch_size), run_eagerly=True)
     # model.compile(optimizer=optimizer, loss=CustomLoss())
 
     model.summary()
-
-    steps_per_epoch = cfg['train_data_length'] // batch_size + 1
 
     shutil.copy("src/config.yml", f"{result_dir}/config.yaml")
 
