@@ -58,15 +58,12 @@ def train():
         train_ds = craft_dataset.generate()
         steps_per_epoch = cfg['train_synth_data_length'] // batch_size + 1
 
-
-
     train_ds = train_ds.\
         repeat().\
         batch(batch_size).\
         prefetch(tf.data.AUTOTUNE)
 
     model.compile(optimizer=optimizer, loss=CustomLoss(batch_size), run_eagerly=True)
-    # model.compile(optimizer=optimizer, loss=CustomLoss())
 
     model.summary()
 
@@ -82,7 +79,7 @@ def train():
                          CheckLearningProcess(image_dir),
                          CustomModelCheckpoint(model, checkpoint_dir, all_step=0, save_steps=cfg['train_save_steps'])])
 
-    model.save(f'{result_dir}/saved_model')
+    model.save(f'{result_dir}/saved_model', include_optimizer=False)
 
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
 

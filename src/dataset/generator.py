@@ -198,7 +198,6 @@ class CraftDataset():
 
             if text == "###":
                 scp[y_min:y_max, x_min:x_max] = 0
-                continue
 
             cropped_image = image[y_min:y_max, x_min:x_max]
             if cropped_image.shape[0] == 0 or cropped_image.shape[1] == 0:
@@ -209,7 +208,7 @@ class CraftDataset():
             image_resized = normalizeMeanVariance(image_resized)
             inputs = np.expand_dims(image_resized, 0)
             # 推論
-            heatmaps = self.model.predict(inputs)
+            heatmaps = self.model.predict_on_batch(inputs)
             # region scoreのみ取得
             region_score = heatmaps[0, :, :, 0]
             region_score = (region_score * 255).astype(np.uint8)
@@ -220,7 +219,7 @@ class CraftDataset():
 
             confidence = self.get_confidence(len(text), len(pseudo_char_boxes_per_word))
 
-            if confidence < 0.7:
+            if confidence < 0.5:
                 char_bboxes = []
                 # 0.5以下なら真の文字数でbboxを均等に分割する
                 width = cropped_image.shape[1]
