@@ -6,7 +6,7 @@ gaussian_sigma: 10
 gaussian_spread: 3
 train_data: "src/dataset/synthtext"
 train_data_icdar: "src/dataset/icdar"
-train_shuffle_buffer_size: 1000
+train_shuffle_buffer_size: 10
 train_shuffle_seed: 123
 train_batch_size: 4
 train_synth_data_length: 6
@@ -15,9 +15,13 @@ train_icdar_data_length: 10
 train_epochs: 20
 train_initial_lr: 0.0001 # 1e-4
 train_save_steps: 1000
-train_lr_change_step: 3
+train_lr_change_step: 100
 is_weak_supervised: True
 is_model_weight_load: True
+
+train_synth_batch_size: 2
+train_icdar_batch_size: 5
+train_end_step: 20
 
 # model
 mbv3_alpha: 1.0

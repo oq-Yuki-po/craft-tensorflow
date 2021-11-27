@@ -47,6 +47,9 @@ class CustomLoss(tf.keras.losses.Loss):
         region_loss = tf.square(tf.subtract(region_gt, region_pre))
         aff_loss = tf.square(tf.subtract(aff_gt, aff_pre))
 
+        region_loss = tf.matmul(region_loss, scp)
+        aff_loss = tf.matmul(aff_loss, scp)
+
         region_loss = self.single_image_loss(region_loss, region_gt)
         aff_loss = self.single_image_loss(aff_loss, aff_gt)
 

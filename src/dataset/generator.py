@@ -38,7 +38,7 @@ class CraftDataset():
                                           [iaa.HorizontalFlip(1.0),
                                            iaa.VerticalFlip(1.0)])),
             iaa.Sometimes(0.5, iaa.GaussianBlur(sigma=(0.0, 3.0))),
-            iaa.Sometimes(0.5, iaa.Rotate(rotate=(-60, 60))),
+            iaa.Sometimes(0.5, iaa.Rotate(rotate=(-30, 30))),
             iaa.Sometimes(0.5, iaa.AddToHue(value=(-30, 30))),
             iaa.Sometimes(0.5, iaa.AddToSaturation(value=(-30, 30))),
             iaa.Sometimes(0.5, iaa.AddToBrightness(add=(-30, 30))),
