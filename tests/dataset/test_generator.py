@@ -1,14 +1,35 @@
 import matplotlib.pyplot as plt
+import pytest
 import tensorflow as tf
 
 from src.dataset.generator import CraftDataset
+from src.model import craft
 from tests import OUTPUT_PATH
 
 
-def test_generate_dataset():
+@pytest.fixture()
+def craft_dataset_for_synth():
 
     craft_dataset = CraftDataset()
-    dataset = craft_dataset.generate()
+
+    return craft_dataset
+
+
+@pytest.fixture()
+def craft_dataset_for_icdar(config):
+
+    model = craft()
+    latest = tf.train.latest_checkpoint(config['test_checkpoint'])
+    model.load_weights(latest)
+
+    craft_dataset = CraftDataset(model=model)
+
+    return craft_dataset
+
+
+def test_generate_dataset(craft_dataset_for_synth):
+
+    dataset = craft_dataset_for_synth.generate()
 
     plt.figure(figsize=(24, 24))
     for index, (image, heatmaps) in enumerate(dataset.take(3),):
@@ -27,12 +48,9 @@ def test_generate_dataset():
     plt.savefig(f"{OUTPUT_PATH}/dataset_region_heatmap.png")
 
 
-def test_generate_dataset_for_icdar():
-    tf.data.experimental.enable_debug_mode()
-    model = tf.keras.models.load_model("results/20211109030423/saved_model")
-    craft_dataset = CraftDataset(model=model)
+def test_generate_dataset_for_icdar(craft_dataset_for_icdar):
 
-    dataset = craft_dataset.generate(is_weak_supervised=True)
+    dataset = craft_dataset_for_icdar.generate(is_weak_supervised=True)
 
     plt.figure(figsize=(24, 24))
     for index, (image, heatmaps) in enumerate(dataset.take(3),):
@@ -51,8 +69,7 @@ def test_generate_dataset_for_icdar():
     plt.savefig(f"{OUTPUT_PATH}/dataset_region_heatmap.png")
 
 
-def test_preprocess_icdar():
-    model = tf.keras.models.load_model("results/20211109030423/saved_model")
-    craft_dataset = CraftDataset(model=model)
-    craft_dataset.preprocess_icdar('src/dataset/icdar/train_images/img_9.jpg',
-                                   'src/dataset/icdar/train_gts/gt_img_9.txt')
+def test_preprocess_icdar(craft_dataset_for_icdar):
+
+    craft_dataset_for_icdar.preprocess_icdar('src/dataset/icdar/train_images/img_9.jpg',
+                                             'src/dataset/icdar/train_gts/gt_img_9.txt')

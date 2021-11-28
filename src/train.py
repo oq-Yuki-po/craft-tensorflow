@@ -46,7 +46,7 @@ def train():
 
     if cfg['is_model_weight_load']:
 
-        latest = tf.train.latest_checkpoint('results/checkpoints')
+        latest = tf.train.latest_checkpoint(cfg['train_checkpoint'])
         model.load_weights(latest)
         print(f'weight loaded : {latest}')
 

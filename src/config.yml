@@ -18,6 +18,7 @@ train_save_steps: 1000
 train_lr_change_step: 100
 is_weak_supervised: True
 is_model_weight_load: True
+train_checkpoint: 'results/checkpoints'
 
 train_synth_batch_size: 2
 train_icdar_batch_size: 5
@@ -25,3 +26,6 @@ train_end_step: 20
 
 # model
 mbv3_alpha: 1.0
+
+# test
+test_checkpoint: 'results/checkpoints'

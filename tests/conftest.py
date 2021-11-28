@@ -4,6 +4,7 @@ import shutil
 import h5py
 import pytest
 
+from src.util import load_yaml
 from tests import OUTPUT_PATH
 
 
@@ -17,6 +18,17 @@ def make_tmp_dir(request):
 
     request.addfinalizer(remove_tmp_dir)
     return make_tmp_dir
+
+@pytest.fixture
+def config(scope='session', autouse=True):
+    """config.ymlの読み込み
+
+    Returns:
+        dict: 設定値
+    """
+    config = load_yaml()
+
+    return config
 
 
 @pytest.fixture
