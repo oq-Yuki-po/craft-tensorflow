@@ -187,6 +187,13 @@ class CraftDataset():
                 bboxes.append(bbox.reshape(4, 2))
         return np.stack(bboxes, 0), texts
 
+    def concat_dataset(self, synth_data, icdar_data):
+
+        x = tf.concat((synth_data[0], icdar_data[0]), axis=0)
+        y = tf.concat((synth_data[1], icdar_data[1]), axis=0)
+
+        return x, y
+
     def generate_socore_map(self, image, word_bboxes, texts, scp):
         pseudo_char_boxes = []
         scp = scp.numpy()

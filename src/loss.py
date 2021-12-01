@@ -6,7 +6,7 @@ class CustomLoss(tf.keras.losses.Loss):
         super().__init__()
         self.batch_size = batch_size
 
-    @tf.function
+
     def single_image_loss(self, pre_loss, loss_label):
 
         sum_loss = 0

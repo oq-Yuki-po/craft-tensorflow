@@ -1,9 +1,7 @@
 import datetime
-import imp
 import pathlib
 import shutil
 
-import numpy as np
 import tensorflow as tf
 import typer
 from tensorflow.keras import optimizers
@@ -52,7 +50,8 @@ def train():
         train_ds_synth = craft_dataset_synth.generate()
         craft_dataset_icdar = CraftDataset(model=model)
         train_ds_icdar = craft_dataset_icdar.generate(is_weak_supervised=cfg['is_weak_supervised'])
-        steps_per_epoch = (cfg['train_synth_data_length'] + cfg['train_icdar_data_length']) // batch_size + 1
+        steps_per_epoch = (cfg['train_synth_data_length'] + cfg['train_icdar_data_length']
+                           ) // (cfg['train_synth_batch_size'] + cfg['train_icdar_batch_size']) + 1
 
         train_ds_synth = train_ds_synth.\
             shuffle(buffer_size=cfg['train_shuffle_buffer_size'], seed=cfg['train_shuffle_seed']).\
@@ -65,6 +64,10 @@ def train():
             repeat().\
             batch(cfg['train_icdar_batch_size']).\
             prefetch(tf.data.AUTOTUNE)
+
+        train_ds = tf.data.Dataset.zip((train_ds_synth, train_ds_icdar))
+
+        train_ds = train_ds.map(craft_dataset_synth.concat_dataset)
     else:
         craft_dataset = CraftDataset()
         train_ds = craft_dataset.generate()

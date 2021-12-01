@@ -16,12 +16,12 @@ train_epochs: 20
 train_initial_lr: 0.0001 # 1e-4
 train_save_steps: 5
 train_lr_change_step: 10
-is_weak_supervised: False
+is_weak_supervised: True
 is_model_weight_load: True
 train_checkpoint: 'results/checkpoints'
 
 train_synth_batch_size: 2
-train_icdar_batch_size: 5
+train_icdar_batch_size: 6
 train_end_step: 20
 
 # model
