@@ -16,7 +16,7 @@ def cb_tensorboard(log_dir):
         [tf.keras.callbacks]: TensorBoardのCallback
     """
 
-    return tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1, update_freq=3, profile_batch='1,5')
+    return tf.keras.callbacks.TensorBoard(log_dir=log_dir, update_freq='batch')
 
 
 def cb_epoch_checkpoint(checkpoint_dir):
@@ -72,12 +72,15 @@ class CustomLearningRateScheduler(tf.keras.callbacks.Callback):
         self.change_steps = change_steps
 
     def on_train_batch_begin(self, batch, logs=None):
-        current_lr = self.model.optimizer.learning_rate.numpy()
+
+        current_lr = self.model.optimizer.lr.numpy()
+
         self.all_step += 1
 
         if self.all_step % self.change_steps == 0:
-            self.model.optimizer.learning_rate.assign(current_lr * 0.8)
-            print(f"current lr:{current_lr:.08f} new lr:{current_lr * 0.8:.08f}")
+            self.model.optimizer.lr.assign(current_lr * 0.8)
+            print(f"\ncurrent lr:{current_lr:.08e} new lr:{current_lr * 0.8:.08e}")
+
         tf.summary.scalar('learning rate', data=current_lr, step=self.all_step)
 
 
@@ -91,7 +94,7 @@ class CheckLearningProcess(tf.keras.callbacks.Callback):
     def on_train_batch_begin(self, batch, logs=None):
 
         self.all_step += 1
-        if self.all_step % 1 == 0:
+        if self.all_step % 1000 == 0:
             image = loadImage('src/images/sample_01.jpeg')
             org_image_height, org_image_width, _ = image.shape
             image_resized, _, _ = resize_aspect_ratio(image, 1280, cv2.INTER_LINEAR)
@@ -99,7 +102,7 @@ class CheckLearningProcess(tf.keras.callbacks.Callback):
             image_resized = normalizeMeanVariance(image_resized)
             inputs = np.expand_dims(image_resized, axis=0)
 
-            results = self.model.predict(inputs)
+            results = self.model.predict_on_batch(inputs)
             region = results[0, :, :, 0]
             affinity = results[0, :, :, 1]
             region = (region * 255).astype(np.uint8)

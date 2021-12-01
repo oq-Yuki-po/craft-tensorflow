@@ -8,15 +8,15 @@ train_data: "src/dataset/synthtext"
 train_data_icdar: "src/dataset/icdar"
 train_shuffle_buffer_size: 10
 train_shuffle_seed: 123
-train_batch_size: 4
-train_synth_data_length: 6
+train_batch_size: 8
+train_synth_data_length: 60
 train_synth_data_percentage_to_use: 0.3
 train_icdar_data_length: 10
 train_epochs: 20
 train_initial_lr: 0.0001 # 1e-4
-train_save_steps: 1000
-train_lr_change_step: 100
-is_weak_supervised: True
+train_save_steps: 5
+train_lr_change_step: 10
+is_weak_supervised: False
 is_model_weight_load: True
 train_checkpoint: 'results/checkpoints'
 

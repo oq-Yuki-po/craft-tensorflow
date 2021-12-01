@@ -1,4 +1,5 @@
 import datetime
+import imp
 import pathlib
 import shutil
 
@@ -16,14 +17,6 @@ from src.util import load_yaml
 
 
 def train():
-
-    def train_step(x, y):
-        with tf.GradientTape() as tape:
-            logits = model(x, training=True)
-            loss_value = loss_fn(y, logits)
-        grads = tape.gradient(loss_value, model.trainable_weights)
-        optimizer.apply_gradients(zip(grads, model.trainable_weights))
-        return loss_value
 
     cfg = load_yaml()
 
@@ -50,7 +43,7 @@ def train():
         model.load_weights(latest)
         print(f'weight loaded : {latest}')
 
-    optimizer = optimizers.Adam(learning_rate=cfg['train_initial_lr'])
+    optimizer = optimizers.Adam()
 
     batch_size = cfg['train_batch_size']
 
@@ -84,58 +77,25 @@ def train():
 
     model.compile(optimizer=optimizer, loss=CustomLoss(batch_size), run_eagerly=True)
 
-    # model.summary()
+    model.optimizer.lr.assign(cfg['train_initial_lr'])
+
+    model.summary()
+
+    print(f'steps_per_epoch: {steps_per_epoch}')
 
     shutil.copy("src/config.yml", f"{result_dir}/config.yaml")
 
     callbacks = [cb_tensorboard(log_dir),
-                #  cb_epoch_checkpoint(checkpoint_dir),
+                 cb_epoch_checkpoint(checkpoint_dir),
                  cb_early_stopping(),
                  CustomLearningRateScheduler(change_steps=cfg['train_lr_change_step']),
                  CheckLearningProcess(image_dir),
-                 CustomModelCheckpoint(model, checkpoint_dir, all_step=0, save_steps=cfg['train_save_steps'])]
+                 CustomModelCheckpoint(model, checkpoint_dir, save_steps=cfg['train_save_steps'])]
 
-    callbacks = tf.keras.callbacks.CallbackList(callbacks, add_history=True, model=model)
-
-    if cfg['is_weak_supervised']:
-        logs = {}
-        train_summary_writer = tf.summary.create_file_writer(log_dir)
-        callbacks.on_train_begin(logs=logs)
-        loss_fn = CustomLoss(batch_size)
-        epoch = 1
-        callbacks.on_epoch_begin(epoch)
-        for step, (synth, icdar) in enumerate(zip(train_ds_synth, train_ds_icdar), start=1):
-            callbacks.on_batch_begin(step, logs=logs)
-            callbacks.on_train_batch_begin(step, logs=logs)
-            x_synth, y_synth = synth[0], synth[1]
-            x_icdar, y_icdar = icdar[0], icdar[1]
-            x_batch = np.concatenate([x_synth.numpy(), x_icdar.numpy()])
-            y_batch = np.concatenate([y_synth.numpy(), y_icdar.numpy()])
-            loss_value = train_step(x_batch, y_batch)
-
-            if step % 10 == 0:
-                with train_summary_writer.as_default():
-                    tf.summary.scalar('loss', loss_value, step=step)
-            print("Training loss (for one batch) at step %d: %.4f on epoch %d" % (step, float(loss_value), epoch))
-            print("Seen so far: %d samples" % ((step + 1) * batch_size))
-            callbacks.on_train_batch_end(step, logs=logs)
-            callbacks.on_batch_end(step, logs=logs)
-
-            if step % steps_per_epoch == 0:
-                callbacks.on_epoch_end(epoch, logs=logs)
-                epoch += 1
-                callbacks.on_epoch_begin(epoch)
-
-            if step == cfg['train_end_step']:
-                break
-
-        callbacks.on_train_end(logs=logs)
-
-    else:
-        model.fit(train_ds,
-                  epochs=cfg['train_epochs'],
-                  steps_per_epoch=steps_per_epoch,
-                  callbacks=callbacks)
+    model.fit(train_ds,
+              epochs=cfg['train_epochs'],
+              steps_per_epoch=steps_per_epoch,
+              callbacks=callbacks)
 
     model.save(f'{result_dir}/saved_model', include_optimizer=False)
 
