@@ -175,7 +175,11 @@ class CraftDataset():
         with open(gt_path.numpy().decode('utf-8'), "r") as f:
             for line in f:
                 bbox = [int(i) for i in line.split(",")[:8]]
-                text = line.split(",")[-1]
+                line = line.replace("\n", "")
+                if line[-1] == ",":
+                    text = line.split(",")[-2] + ","
+                else:
+                    text = line.split(",")[-1]
                 texts.append(text.replace("\n", ""))
                 for i in bbox:
                     assert type(i) == int
@@ -278,7 +282,7 @@ class CraftDataset():
                 image_names = f.read().split("\n")
             for image_name in image_names:
                 image_path = f"{icdar_dir_path}/train_images/{image_name}"
-                gt_path = f"{icdar_dir_path}/train_gts/gt_{image_name.replace('.jpg', '.txt')}"
+                gt_path = f"{icdar_dir_path}/train_gts/{image_name}.txt"
 
                 p_image_path = pathlib.Path(image_path)
                 p_gt_path = pathlib.Path(gt_path)
