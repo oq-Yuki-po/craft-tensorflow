@@ -53,4 +53,10 @@ class CustomLoss(tf.keras.losses.Loss):
         region_loss = self.single_image_loss(region_loss, region_gt)
         aff_loss = self.single_image_loss(aff_loss, aff_gt)
 
+        if tf.math.is_nan(region_loss):
+            region_loss = 1e-5
+
+        if tf.math.is_nan(aff_loss):
+            aff_loss = 1e-5
+
         return tf.divide(tf.add(region_loss, aff_loss), self.batch_size)
